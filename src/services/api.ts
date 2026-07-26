@@ -90,12 +90,13 @@ async function request<T>(
     );
   }
 
-  const url = new URL(BASE_URL + path);
+  const url = new URL(BASE_URL + path, window.location.origin);
   if (opts.query) {
     for (const [k, v] of Object.entries(opts.query)) {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
     }
   }
+
 
   const headers: Record<string, string> = { Accept: "application/json" };
   if (!opts.skipAuth) {
