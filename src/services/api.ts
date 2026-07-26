@@ -2,7 +2,9 @@
 import { camelToSnake, snakeToCamel } from "./case";
 import { authStore } from "@/stores/auth";
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(
+const DEFAULT_API_URL = "https://aimetch-talent.onrender.com";
+
+const BASE_URL = ((import.meta.env.VITE_API_URL as string | undefined) || DEFAULT_API_URL).replace(
   /\/$/,
   "",
 );
