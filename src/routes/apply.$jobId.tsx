@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Globe, Lock, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { AsyncButton } from "@/components/async-button";
+import { Badge } from "@/components/ui/badge";
 import { ResumeUpload } from "@/components/resume-upload";
 import { jobsService } from "@/services/jobs.service";
 import { applicationsService } from "@/services/applications.service";
