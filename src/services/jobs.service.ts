@@ -2,12 +2,45 @@ import { api, ApiError } from "./api";
 import { USE_MOCK, mockApi } from "./mock";
 import type { Job, CreateJobInput, RankingRow } from "./types";
 
+// Fallback quando GET /empresas não existir no backend.
+const FALLBACK_EMPRESA_IDS = ["empresa1"];
+
+async function listEmpresaIds(): Promise<string[]> {
+  try {
+    const empresas = await api.get<Array<{ id?: string; empresaId?: string }>>(
+      "/empresas",
+    );
+    const ids = (empresas ?? [])
+      .map((e) => e.empresaId ?? e.id)
+      .filter((v): v is string => Boolean(v));
+    return ids.length > 0 ? ids : FALLBACK_EMPRESA_IDS;
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
+      return FALLBACK_EMPRESA_IDS;
+    }
+    throw err;
+  }
+}
+
 async function safeList(params?: { status?: "active" | "closed" }): Promise<Job[]> {
   try {
-    return await api.get<Job[]>("/vagas", params);
+    const ids = await listEmpresaIds();
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          return await api.get<Job[]>(`/empresas/${id}/vagas`);
+        } catch (err) {
+          if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
+            return [];
+          }
+          throw err;
+        }
+      }),
+    );
+    const all = results.flat();
+    if (!params?.status) return all;
+    return all.filter((j) => (j.status ?? "active") === params.status);
   } catch (err) {
-    // Backend atual não expõe GET /vagas (405/404). Renderiza lista vazia
-    // em vez de quebrar a rota inteira.
     if (err instanceof ApiError && (err.status === 404 || err.status === 405)) {
       return [];
     }
