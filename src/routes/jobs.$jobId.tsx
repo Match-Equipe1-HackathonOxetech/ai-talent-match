@@ -80,9 +80,20 @@ function JobDetailPage() {
 
       {role === "recruiter" && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Candidatos ({sorted.length}) — por AI Score
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="flex-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Candidatos ({sorted.length}) — por AI Score
+            </h2>
+            <Button asChild size="sm" variant="outline" className="min-h-9">
+              <Link
+                to="/jobs/$jobId/ranking"
+                params={{ jobId }}
+                aria-label="Abrir ranking de candidatos"
+              >
+                Ver ranking
+              </Link>
+            </Button>
+          </div>
           {sorted.length === 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-card px-4 py-10 text-center text-muted-foreground">
               <Inbox className="h-8 w-8" aria-hidden />
