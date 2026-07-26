@@ -1,4 +1,5 @@
 import { api } from "./api";
+import { USE_MOCK, mockApi } from "./mock";
 import type {
   Application,
   CreateApplicationInput,
@@ -6,9 +7,10 @@ import type {
 } from "./types";
 
 export const applicationsService = {
-  listMine: () => api.get<Application[]>("/applications/me"),
+  listMine: () =>
+    USE_MOCK ? mockApi.listMyApplications() : api.get<Application[]>("/applications/me"),
   create: (input: CreateApplicationInput) =>
-    api.post<CreateApplicationResponse>("/applications", {
-      candidateData: input,
-    }),
+    USE_MOCK
+      ? mockApi.createApplication(input)
+      : api.post<CreateApplicationResponse>("/applications", { candidateData: input }),
 };

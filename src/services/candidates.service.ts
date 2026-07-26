@@ -1,11 +1,18 @@
 import { api } from "./api";
+import { USE_MOCK, mockApi } from "./mock";
 import type { Candidate, CandidateDecision } from "./types";
 
 export const candidatesService = {
   listByJob: (jobId: string) =>
-    api.get<Candidate[]>(`/jobs/${jobId}/candidates`),
+    USE_MOCK
+      ? mockApi.listCandidatesByJob(jobId)
+      : api.get<Candidate[]>(`/jobs/${jobId}/candidates`),
   get: (candidateId: string) =>
-    api.get<Candidate>(`/candidates/${candidateId}`),
+    USE_MOCK
+      ? mockApi.getCandidate(candidateId)
+      : api.get<Candidate>(`/candidates/${candidateId}`),
   decide: (candidateId: string, decision: Exclude<CandidateDecision, "pending">) =>
-    api.patch<Candidate>(`/candidates/${candidateId}`, { decision }),
+    USE_MOCK
+      ? mockApi.decideCandidate(candidateId, decision)
+      : api.patch<Candidate>(`/candidates/${candidateId}`, { decision }),
 };
