@@ -76,7 +76,7 @@ function ApplyPage() {
         <li>
           <AsyncButton asChild variant="outline" className="w-full justify-start">
             <a
-              href={`https://t.me/HireAIBot?start=${encodeURIComponent(jobId)}`}
+              href={`https://t.me/m4tchoxetechbot?start=${encodeURIComponent(jobId)}`}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Iniciar entrevista pelo Telegram"
