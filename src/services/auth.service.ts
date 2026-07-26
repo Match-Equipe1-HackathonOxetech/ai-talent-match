@@ -27,14 +27,41 @@ function decodeJwtRole(token: string): AppRole | null {
   }
 }
 
-function persistTokens(tokens: AuthTokens, forcedRole: AppRole | null, email: string) {
-  const jwtRole = decodeJwtRole(tokens.accessToken);
-  // Priority: explicit forced role (signup flow) > backend response > JWT claim.
-  const role: AppRole =
-    forcedRole ?? tokens.role ?? jwtRole ?? "candidato";
+function extractTokens(res: unknown): { accessToken: string; refreshToken: string | null; role?: AppRole } {
+  const r = (res ?? {}) as Record<string, unknown>;
+  // Suporta múltiplos formatos de resposta do backend.
+  const nested = (r.data ?? r.tokens ?? r.result) as Record<string, unknown> | undefined;
+  const src = { ...(nested ?? {}), ...r };
+  const access =
+    (src.accessToken as string) ??
+    (src.access_token as string) ??
+    (src.token as string) ??
+    (src.jwt as string) ??
+    "";
+  const refresh =
+    (src.refreshToken as string) ??
+    (src.refresh_token as string) ??
+    (src.refresh as string) ??
+    null;
+  const roleRaw = (src.role as string) ?? (src.tipo as string) ?? (src.userType as string);
+  let role: AppRole | undefined;
+  if (roleRaw === "recrutador" || roleRaw === "empresa") role = "recrutador";
+  else if (roleRaw === "candidato" || roleRaw === "candidate") role = "candidato";
+  return { accessToken: access, refreshToken: refresh, role };
+}
+
+function persistTokens(res: unknown, forcedRole: AppRole | null, email: string) {
+  const { accessToken, refreshToken, role: bodyRole } = extractTokens(res);
+  if (!accessToken) {
+    throw new Error(
+      "Login sem token de acesso na resposta do backend. Verifique o formato retornado por /login.",
+    );
+  }
+  const jwtRole = decodeJwtRole(accessToken);
+  const role: AppRole = forcedRole ?? bodyRole ?? jwtRole ?? "candidato";
   authStore.setSession({
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
+    accessToken,
+    refreshToken,
     role,
     email,
   });
