@@ -163,7 +163,7 @@ export const mockApi = {
     applications.unshift(app);
     const res: CreateApplicationResponse = {
       applicationId: app.applicationId,
-      telegramUrl: `https://t.me/HireAIBot?start=${app.applicationId}`,
+      telegramUrl: `https://t.me/m4tchoxetechbot?start=${app.applicationId}`,
     };
     return delay(res);
   },
