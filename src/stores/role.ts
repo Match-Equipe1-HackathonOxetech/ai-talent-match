@@ -1,38 +1,20 @@
-import { useSyncExternalStore } from "react";
+// Compat layer: keep the useRole() API used across the UI, but drive it from
+// the real auth session. Old values ("recruiter"/"candidate") are mapped from
+// authStore.role ("recrutador"/"candidato").
+import { useMemo } from "react";
+import { authStore, useAuth, type AppRole } from "./auth";
 
 export type Role = "recruiter" | "candidate";
 
-const KEY = "app.role";
-const listeners = new Set<() => void>();
-
-function read(): Role {
-  if (typeof window === "undefined") return "recruiter";
-  const v = window.localStorage.getItem(KEY);
-  return v === "candidate" ? "candidate" : "recruiter";
-}
-
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) cb();
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(cb);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+const toUi = (r: AppRole | null): Role => (r === "candidato" ? "candidate" : "recruiter");
+const toApi = (r: Role): AppRole => (r === "candidate" ? "candidato" : "recrutador");
 
 export function setRole(next: Role) {
-  window.localStorage.setItem(KEY, next);
-  listeners.forEach((l) => l());
+  authStore.setSession({ role: toApi(next) });
 }
 
 export function useRole(): [Role, (r: Role) => void] {
-  const role = useSyncExternalStore(
-    subscribe,
-    () => read(),
-    () => "recruiter" as Role,
-  );
-  return [role, setRole];
+  const { role } = useAuth();
+  const ui = useMemo(() => toUi(role), [role]);
+  return [ui, setRole];
 }
