@@ -121,6 +121,24 @@ export const mockApi = {
   },
   listCandidatesByJob: (jobId: string) =>
     delay(candidates.filter((c) => c.jobId === jobId)),
+  rankingByJob: (jobId: string) =>
+    delay(
+      candidates
+        .filter((c) => c.jobId === jobId)
+        .map((c) => {
+          const hard = Math.max(0, Math.min(100, c.aiScore + Math.round((Math.random() - 0.5) * 10)));
+          const soft = Math.max(0, Math.min(100, c.aiScore + Math.round((Math.random() - 0.5) * 10)));
+          const media = Math.round((hard + soft) / 2);
+          return {
+            candidateId: c.candidateId,
+            fullName: c.fullName,
+            headline: c.headline,
+            hardScore: hard,
+            softScore: soft,
+            mediaScore: media,
+          };
+        }),
+    ),
   getCandidate: (id: string) => {
     const c = candidates.find((x) => x.candidateId === id);
     if (!c) return Promise.reject(new Error("Candidato não encontrado"));
