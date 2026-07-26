@@ -24,6 +24,7 @@ import { Route as CandidatesCandidateIdRouteImport } from './routes/candidates.$
 import { Route as ApplyJobIdRouteImport } from './routes/apply.$jobId'
 import { Route as JobsJobIdIndexRouteImport } from './routes/jobs.$jobId.index'
 import { Route as JobsJobIdRankingRouteImport } from './routes/jobs.$jobId.ranking'
+import { Route as ApiProxySplatRouteImport } from './routes/api/proxy/$'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -100,6 +101,11 @@ const JobsJobIdRankingRoute = JobsJobIdRankingRouteImport.update({
   path: '/ranking',
   getParentRoute: () => JobsJobIdRoute,
 } as any)
+const ApiProxySplatRoute = ApiProxySplatRouteImport.update({
+  id: '/api/proxy/$',
+  path: '/api/proxy/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/jobs/$jobId': typeof JobsJobIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
   '/jobs/': typeof JobsIndexRoute
+  '/api/proxy/$': typeof ApiProxySplatRoute
   '/jobs/$jobId/ranking': typeof JobsJobIdRankingRoute
   '/jobs/$jobId/': typeof JobsJobIdIndexRoute
 }
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/interviews/$interviewId': typeof InterviewsInterviewIdRoute
   '/jobs/new': typeof JobsNewRoute
   '/jobs': typeof JobsIndexRoute
+  '/api/proxy/$': typeof ApiProxySplatRoute
   '/jobs/$jobId/ranking': typeof JobsJobIdRankingRoute
   '/jobs/$jobId': typeof JobsJobIdIndexRoute
 }
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/jobs/$jobId': typeof JobsJobIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
   '/jobs/': typeof JobsIndexRoute
+  '/api/proxy/$': typeof ApiProxySplatRoute
   '/jobs/$jobId/ranking': typeof JobsJobIdRankingRoute
   '/jobs/$jobId/': typeof JobsJobIdIndexRoute
 }
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/jobs/new'
     | '/jobs/'
+    | '/api/proxy/$'
     | '/jobs/$jobId/ranking'
     | '/jobs/$jobId/'
   fileRoutesByTo: FileRoutesByTo
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/interviews/$interviewId'
     | '/jobs/new'
     | '/jobs'
+    | '/api/proxy/$'
     | '/jobs/$jobId/ranking'
     | '/jobs/$jobId'
   id:
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/jobs/$jobId'
     | '/jobs/new'
     | '/jobs/'
+    | '/api/proxy/$'
     | '/jobs/$jobId/ranking'
     | '/jobs/$jobId/'
   fileRoutesById: FileRoutesById
@@ -213,6 +225,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   ApplyJobIdRoute: typeof ApplyJobIdRoute
   InterviewsInterviewIdRoute: typeof InterviewsInterviewIdRoute
+  ApiProxySplatRoute: typeof ApiProxySplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -322,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JobsJobIdRankingRouteImport
       parentRoute: typeof JobsJobIdRoute
     }
+    '/api/proxy/$': {
+      id: '/api/proxy/$'
+      path: '/api/proxy/$'
+      fullPath: '/api/proxy/$'
+      preLoaderRoute: typeof ApiProxySplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   ApplyJobIdRoute: ApplyJobIdRoute,
   InterviewsInterviewIdRoute: InterviewsInterviewIdRoute,
+  ApiProxySplatRoute: ApiProxySplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

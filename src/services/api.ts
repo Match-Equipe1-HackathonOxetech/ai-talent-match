@@ -2,12 +2,10 @@
 import { camelToSnake, snakeToCamel } from "./case";
 import { authStore } from "@/stores/auth";
 
-const DEFAULT_API_URL = "https://aimetch-talent.onrender.com";
+// All requests go through our same-origin server proxy (src/routes/api/proxy/$.ts)
+// to bypass CORS on the external Python backend.
+const BASE_URL = "/api/proxy";
 
-const BASE_URL = ((import.meta.env.VITE_API_URL as string | undefined) || DEFAULT_API_URL).replace(
-  /\/$/,
-  "",
-);
 
 export class ApiError extends Error {
   status: number;
@@ -92,12 +90,13 @@ async function request<T>(
     );
   }
 
-  const url = new URL(BASE_URL + path);
+  const url = new URL(BASE_URL + path, window.location.origin);
   if (opts.query) {
     for (const [k, v] of Object.entries(opts.query)) {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
     }
   }
+
 
   const headers: Record<string, string> = { Accept: "application/json" };
   if (!opts.skipAuth) {
