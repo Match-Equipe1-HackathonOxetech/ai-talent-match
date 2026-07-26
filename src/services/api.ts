@@ -1,5 +1,6 @@
 // Centralized HTTP client. UI components MUST NOT call fetch/axios directly.
 import { camelToSnake, snakeToCamel } from "./case";
+import { authStore } from "@/stores/auth";
 
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(
   /\/$/,
@@ -36,6 +37,45 @@ interface RequestOptions {
   body?: unknown;
   signal?: AbortSignal;
   timeoutMs?: number;
+  skipAuth?: boolean;
+  _retry?: boolean;
+}
+
+// Single-flight refresh promise so multiple 401s don't spawn parallel refreshes.
+let refreshPromise: Promise<boolean> | null = null;
+
+async function performRefresh(): Promise<boolean> {
+  const { refreshToken } = authStore.getSnapshot();
+  if (!refreshToken || !BASE_URL) return false;
+  try {
+    const res = await fetch(BASE_URL + "/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+    };
+    if (!data.access_token) return false;
+    authStore.setSession({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? refreshToken,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureRefreshed(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 }
 
 async function request<T>(
@@ -58,11 +98,10 @@ async function request<T>(
   }
 
   const headers: Record<string, string> = { Accept: "application/json" };
-  const token =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("auth_token")
-      : null;
-  if (token) headers.Authorization = `Bearer ${token}`;
+  if (!opts.skipAuth) {
+    const { accessToken } = authStore.getSnapshot();
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  }
 
   let body: BodyInit | undefined;
   if (opts.body !== undefined) {
@@ -95,6 +134,15 @@ async function request<T>(
   }
   window.clearTimeout(timeout);
 
+  // Handle 401 with single-flight refresh (once).
+  if (res.status === 401 && !opts.skipAuth && !opts._retry) {
+    const ok = await ensureRefreshed();
+    if (ok) {
+      return request<T>(method, path, { ...opts, _retry: true });
+    }
+    authStore.clear();
+  }
+
   const text = await res.text();
   const parsed = text ? safeJson(text) : undefined;
 
@@ -126,12 +174,14 @@ function mergeSignals(a: AbortSignal, b: AbortSignal): AbortSignal {
 }
 
 export const api = {
-  get: <T>(path: string, query?: RequestOptions["query"]) =>
-    request<T>("GET", path, { query }),
-  post: <T>(path: string, body?: unknown) =>
-    request<T>("POST", path, { body }),
-  put: <T>(path: string, body?: unknown) => request<T>("PUT", path, { body }),
-  patch: <T>(path: string, body?: unknown) =>
-    request<T>("PATCH", path, { body }),
-  del: <T>(path: string) => request<T>("DELETE", path),
+  get: <T>(path: string, query?: RequestOptions["query"], opts?: Partial<RequestOptions>) =>
+    request<T>("GET", path, { query, ...opts }),
+  post: <T>(path: string, body?: unknown, opts?: Partial<RequestOptions>) =>
+    request<T>("POST", path, { body, ...opts }),
+  put: <T>(path: string, body?: unknown, opts?: Partial<RequestOptions>) =>
+    request<T>("PUT", path, { body, ...opts }),
+  patch: <T>(path: string, body?: unknown, opts?: Partial<RequestOptions>) =>
+    request<T>("PATCH", path, { body, ...opts }),
+  del: <T>(path: string, opts?: Partial<RequestOptions>) =>
+    request<T>("DELETE", path, opts),
 };
