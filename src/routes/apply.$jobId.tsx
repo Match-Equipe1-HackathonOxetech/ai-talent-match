@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Globe, Lock, MessageCircle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { AsyncButton } from "@/components/async-button";
+import { Badge } from "@/components/ui/badge";
 import { ResumeUpload } from "@/components/resume-upload";
 import { jobsService } from "@/services/jobs.service";
 import { applicationsService } from "@/services/applications.service";
@@ -80,22 +81,66 @@ function ApplyPage() {
       </header>
 
       {telegramUrl ? (
-        <div className="space-y-4 rounded-2xl border border-border bg-card p-5 text-center">
-          <h2 className="text-lg font-semibold">Tudo pronto!</h2>
-          <p className="text-sm text-muted-foreground">
-            Sua entrevista com a IA acontece no Telegram. Clique abaixo para começar.
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-5">
+          <div className="space-y-1 text-center">
+            <h2 className="text-lg font-semibold">Tudo pronto!</h2>
+            <p className="text-sm text-muted-foreground">
+              Escolha o canal para conversar com a IA e iniciar sua entrevista.
+            </p>
+          </div>
+
+          <ul className="space-y-2" aria-label="Canais de entrevista disponíveis">
+            <li>
+              <AsyncButton asChild className="w-full justify-start">
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Iniciar entrevista pelo Telegram"
+                >
+                  <Send className="mr-2 h-4 w-4" aria-hidden />
+                  <span className="flex-1 text-left">Telegram</span>
+                  <ExternalLink className="ml-2 h-4 w-4" aria-hidden />
+                </a>
+              </AsyncButton>
+            </li>
+            <li>
+              <button
+                type="button"
+                disabled
+                aria-label="Entrevista pelo WhatsApp — em breve"
+                aria-disabled="true"
+                className="flex min-h-11 w-full cursor-not-allowed items-center rounded-md border border-dashed border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" aria-hidden />
+                <span className="flex-1 text-left">WhatsApp</span>
+                <Badge variant="secondary" className="ml-2 gap-1 font-normal">
+                  <Lock className="h-3 w-3" aria-hidden />
+                  Em breve
+                </Badge>
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                disabled
+                aria-label="Entrevista pelo site — em breve"
+                aria-disabled="true"
+                className="flex min-h-11 w-full cursor-not-allowed items-center rounded-md border border-dashed border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground"
+              >
+                <Globe className="mr-2 h-4 w-4" aria-hidden />
+                <span className="flex-1 text-left">Pelo site</span>
+                <Badge variant="secondary" className="ml-2 gap-1 font-normal">
+                  <Lock className="h-3 w-3" aria-hidden />
+                  Em breve
+                </Badge>
+              </button>
+            </li>
+          </ul>
+
+          <p className="text-center text-xs text-muted-foreground">
+            WhatsApp e entrevista no site fazem parte do nosso roadmap.
           </p>
-          <AsyncButton asChild className="w-full">
-            <a
-              href={telegramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Abrir entrevista no Telegram"
-            >
-              <ExternalLink className="mr-2 h-4 w-4" aria-hidden />
-              Abrir Telegram
-            </a>
-          </AsyncButton>
         </div>
       ) : (
         <form
