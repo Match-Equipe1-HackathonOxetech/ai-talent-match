@@ -2,12 +2,10 @@
 import { camelToSnake, snakeToCamel } from "./case";
 import { authStore } from "@/stores/auth";
 
-const DEFAULT_API_URL = "https://aimetch-talent.onrender.com";
+// All requests go through our same-origin server proxy (src/routes/api/proxy/$.ts)
+// to bypass CORS on the external Python backend.
+const BASE_URL = "/api/proxy";
 
-const BASE_URL = ((import.meta.env.VITE_API_URL as string | undefined) || DEFAULT_API_URL).replace(
-  /\/$/,
-  "",
-);
 
 export class ApiError extends Error {
   status: number;
