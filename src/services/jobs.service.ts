@@ -3,7 +3,7 @@ import { USE_MOCK, mockApi } from "./mock";
 import type { Job, CreateJobInput, RankingRow } from "./types";
 
 // Fallback quando GET /empresas não existir no backend.
-const FALLBACK_EMPRESA_IDS = ["empresa1"];
+const FALLBACK_EMPRESA_IDS = ["ddd2c4674dc94774bca7c1bab2032f78"];
 
 async function listEmpresaIds(): Promise<string[]> {
   try {
