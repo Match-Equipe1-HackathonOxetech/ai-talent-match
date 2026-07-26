@@ -71,7 +71,7 @@ export const authService = {
   async signupEmpresa(input: SignupEmpresaInput): Promise<void> {
     await api.post<unknown>("/empresas", input, { skipAuth: true });
     // Login em seguida — forçamos role="recrutador" para não depender do backend.
-    const res = await api.post<AuthTokens>(
+    const res = await api.post<unknown>(
       "/login",
       { email: input.email, senha: input.senha },
       { skipAuth: true },
@@ -81,7 +81,7 @@ export const authService = {
 
   async signupCandidato(input: SignupCandidatoInput): Promise<void> {
     await api.post<unknown>("/candidatos", input, { skipAuth: true });
-    const res = await api.post<AuthTokens>(
+    const res = await api.post<unknown>(
       "/login",
       { email: input.email, senha: input.senha },
       { skipAuth: true },
@@ -90,7 +90,7 @@ export const authService = {
   },
 
   async login(input: LoginInput, fallbackRole: AppRole = "candidato"): Promise<void> {
-    const res = await api.post<AuthTokens>("/login", input, { skipAuth: true });
+    const res = await api.post<unknown>("/login", input, { skipAuth: true });
     // Login normal: usa role do backend/JWT, com fallback.
     persistTokens(res, null, input.email);
     // Se nada veio, garante o fallback informado pela UI.
