@@ -1,7 +1,6 @@
 import { api } from "./api";
 import { authStore, type AppRole } from "@/stores/auth";
 import type {
-  AuthTokens,
   LoginInput,
   SignupCandidatoInput,
   SignupEmpresaInput,
