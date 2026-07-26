@@ -1,116 +1,84 @@
 
-# MVP Recrutamento IA — Frontend Mobile-First
+## Objetivo
+Integrar o frontend à API Python (`http://192.168.151.46:5000`), com auth completa, entrevista pelo site, e tabela de ranking com Soft / Hard / Média (0–100%) para o recrutador.
 
-Stack real do projeto: **TanStack Start + React 19 + Vite 7 + Tailwind v4 + shadcn/ui** (não Vite/React puro). Aplico todas as suas restrições sobre essa base — roteamento file-based em `src/routes/`, sem `react-router-dom`.
+## 1. Configuração de ambiente
+- `.env.example`: `VITE_API_URL=http://192.168.151.46:5000`.
+- Remover fallback para `mockApi` — se `VITE_API_URL` ausente, mostrar aviso amigável (banner) mas manter mock só como escape hatch em dev via flag explícita `VITE_USE_MOCK=1`.
 
-## 1. Design System (Soft Light Mode)
+## 2. Camada de autenticação
+- `src/services/auth.service.ts`: `signupEmpresa`, `signupCandidato`, `login`, `logout`, `refresh`.
+- `src/stores/auth.ts` (Zustand-like simples via `useSyncExternalStore`): guarda `accessToken`, `refreshToken`, `role` (`recrutador` | `candidato`), persistidos em `localStorage`.
+- `src/services/api.ts`:
+  - Injeta `Authorization: Bearer <access>` (substitui leitura direta de `auth_token`).
+  - Em resposta 401: chama `POST /refresh` uma vez, atualiza tokens, refaz a requisição. Se falhar → limpa sessão e redireciona para `/login`.
+  - Mantém conversão camel↔snake existente.
 
-Ajustes em `src/styles.css`:
-- `--background: oklch(0.985 0.005 250)` (~ #F7F9FC, off-white azulado)
-- `--foreground: oklch(0.22 0.02 260)` (cinza-chumbo, contraste AA+)
-- `--card: oklch(0.995 0.003 250)` levemente acima do bg
-- `--primary` índigo suave; `--accent-score` verde/âmbar/vermelho para faixas do AI Score
-- Tipografia: Inter via `<link>` em `__root.tsx`
-- Sem `#FFFFFF` puro em nenhum componente; só tokens semânticos (`bg-background`, `text-foreground`).
+## 3. Telas de auth (públicas)
+- `src/routes/login.tsx`: email + senha, submit chama `/login`, salva tokens/role, redireciona para `/jobs`.
+- `src/routes/signup.tsx`: toggle **Empresa / Candidato** no topo → alterna entre `/empresas` e `/candidatos`. Campos mínimos por tipo (nome, email, senha; empresa: razão social/CNPJ opcional se a API pedir).
+- `src/routes/_authenticated/route.tsx` (gate): redireciona para `/login` se sem token.
+- Mover rotas privadas (`jobs`, `candidates`, `applications`, `profile`, `apply`) para dentro de `_authenticated/`.
+- Substituir o toggle atual de papel em `src/stores/role.ts` pela role vinda do token/login (compat: mantém a mesma API `useRole()`).
 
-## 2. Layout & Navegação
-
-- `src/routes/__root.tsx`: passa a envolver o `<Outlet />` num `AppShell` com:
-  - `Header` fino (logo + toggle de papel Recrutador/Candidato guardado em `localStorage` via `useRoleStore`)
-  - `<main>` único, `min-h-dvh`, `pb-20` para não colidir com a bottom bar
-  - `BottomTabBar` fixa (`fixed bottom-0 inset-x-0`), 4 tabs conforme papel:
-    - Recrutador: Vagas • Nova Vaga • Candidatos • Perfil
-    - Candidato: Vagas • Minhas Aplicações • Perfil
-  - Tabs com `min-h-14 min-w-14`, ícones lucide + label, `aria-current="page"` no ativo.
-
-## 3. Rotas (file-based)
-
-```
-src/routes/
-  __root.tsx                       (AppShell + role toggle)
-  index.tsx                        (redireciona para /jobs)
-  jobs.tsx                         (layout <Outlet/>)
-  jobs.index.tsx                   (lista de vagas — Recrutador vê próprias, Candidato vê abertas)
-  jobs.$jobId.tsx                  (detalhe vaga + lista de candidatos por AI Score OU botão "Aplicar" p/ candidato)
-  jobs.new.tsx                     (form criação — Recrutador)
-  candidates.$candidateId.tsx      (card expandido: score, resumo, acordeão transcrição, aprovar/rejeitar)
-  applications.tsx                 (Candidato: status das aplicações)
-  apply.$jobId.tsx                 (fluxo: upload CV → botão → redireciona t.me/Bot?start=UUID)
-  profile.tsx
+## 4. Contrato de dados atualizado (types)
+Adicionar em `src/services/types.ts`:
+```ts
+interface SoftHardScore { soft: number; hard: number; media: number } // 0..100
+interface RankedCandidate extends Candidate { scores: SoftHardScore }
+interface CreateVagaInput { jobTitle: string; hardSkills: string[]; softskillsAlvo: string[] }
+interface InterviewState { entrevistaId: string; memoria: unknown; softskillsAvaliadas: string[]; done: boolean }
+interface InterviewQuestion { pergunta: string; ordem: number }
+interface InterviewResult { softskills: Record<string, number>; hardskills: Record<string, number>; media: number; resumo?: string }
 ```
 
-Cada rota define `head()` com título/description próprios.
+## 5. Services mapeados aos endpoints
+- `jobs.service.ts` → `POST /vagas`, `GET /vagas/{id}/resultados` (retorna lista com `soft/hard/media`).
+- `interviews.service.ts` (novo):
+  - `start(vagaId)` → `POST /entrevistas` retorna `{ entrevistaId, pergunta }`.
+  - `answer(id, resposta)` → `POST /entrevistas/{id}/respostas` retorna próxima pergunta ou conclusão.
+  - `getState(id)` → `GET /entrevistas/{id}`.
+  - `getResult(id)` → `POST /entrevistas/{id}/resultado`.
+- `auth.service.ts` conforme item 2.
+- Manter `applications.service.ts` só se ainda usado (o fluxo passa a ser Entrevista direta).
 
-## 4. Service Layer (`src/services/`)
+## 6. Ranking do recrutador — **tabela real**
+Nova rota `/_authenticated/jobs/$jobId/ranking` (ou reaproveitar `jobs.$jobId.tsx` como aba):
+- `useSuspenseQuery` em `GET /vagas/{id}/resultados`, ordenado por `media` desc.
+- Renderiza `<table>` acessível:
+  - Colunas: **#**, **Candidato**, **Soft skills (%)**, **Hard skills (%)**, **Média (%)**, **Ação**.
+  - `<caption>` com título da vaga, `<th scope="col">`, `aria-sort` na coluna clicável, barras visuais nas células (`role="meter"` com `aria-valuenow`).
+  - Linha clicável linka para `/candidates/$candidateId`.
+- Comentário explicando exceção deliberada à regra "zero tabelas" a pedido do usuário.
 
-Nenhum `fetch`/`axios` em componentes. Estrutura:
+## 7. Fluxo de entrevista no site (candidato)
+`src/routes/_authenticated/apply.$jobId.tsx` reformulado:
+- Três opções de canal:
+  - **Pelo site** — ativo. Botão "Iniciar entrevista" chama `POST /entrevistas` e navega para `/interviews/$id`.
+  - **Telegram** — ativo (mantém link atual).
+  - **WhatsApp** — desabilitado, badge "Em breve".
+- Nova rota `src/routes/_authenticated/interviews.$interviewId.tsx`:
+  - Chat mobile-first: bolhas pergunta/resposta, `textarea` + `AsyncButton "Enviar"`.
+  - `useMutation` para `POST /entrevistas/{id}/respostas`; ao receber `done`, chama `POST /entrevistas/{id}/resultado` e mostra tela de conclusão.
+  - `pendingComponent` + toast em erro (padrão já existente).
 
-```
-src/services/
-  api.ts             (cliente base: baseURL = import.meta.env.VITE_API_URL,
-                      interceptor pronto p/ Authorization: Bearer <token> quando auth existir,
-                      timeout, JSON parse, erro tipado ApiError)
-  case.ts            (camelToSnake / snakeToCamel deep recursivos)
-  jobs.service.ts    (listJobs, getJob, createJob, closeJob)
-  candidates.service.ts (listCandidatesByJob, getCandidate, decideCandidate)
-  applications.service.ts (listMyApplications, createApplication → devolve telegram_url)
-  types.ts           (tipos camelCase p/ o front)
-```
+## 8. Criação de vaga
+- `jobs.new.tsx`: renomear "Soft skills" para incluir `softskillsAlvo` no payload; enviar `POST /vagas`.
 
-- Todo **payload de saída** passa por `camelToSnake` (contrato Python garantido).
-- Toda **resposta** passa por `snakeToCamel` para a UI trabalhar em camelCase.
-- Endpoints (REST padrão, conforme escolhido):
-  - `GET/POST /jobs`, `GET /jobs/:id`, `PATCH /jobs/:id/close`
-  - `GET /jobs/:id/candidates`
-  - `GET /candidates/:id`, `PATCH /candidates/:id` (`{ decision: "approved"|"rejected" }`)
-  - `GET /applications/me`, `POST /applications` → `{ telegram_url }`
-- `.env.example` com `VITE_API_URL=`.
-- Sem login agora; interceptor lê `localStorage.getItem("auth_token")` se existir (pronto para plugar depois).
+## 9. Acessibilidade e UX
+- Todos os novos inputs com `<Label htmlFor>`, `aria-invalid`, mensagens de erro em `role="alert"`.
+- Toasts em toda falha de API (`ApiError`).
+- Botões com `AsyncButton` (spinner + disable imediato).
+- Tabela do ranking: navegação por teclado nas linhas, `focus-visible` visível, contraste WCAG AA nas barras.
 
-## 5. Data fetching
+## 10. Verificação
+Após implementar:
+- `tsgo` (typecheck) via harness.
+- Screenshot Playwright em `/login`, `/jobs`, `/jobs/$id/ranking` (com dados mock caso API offline) e `/interviews/$id`.
+- Testar fluxo 401→refresh com mock local temporário no console.
 
-- TanStack Query já disponível. Loaders usam `queryClient.ensureQueryData(queryOptions)` e componentes usam `useSuspenseQuery`.
-- Mutations (`createJob`, `decideCandidate`, `createApplication`) via `useMutation`:
-  - Botão fica `disabled` no `isPending` (previne duplo-clique)
-  - Spinner inline (`Loader2` do lucide) dentro do botão
-  - `onError` dispara `toast.error(...)` (sonner) com mensagem amigável derivada de `ApiError`
-  - `onSuccess` dispara `toast.success(...)` e invalida queries relacionadas
-
-## 6. Componentes de UI (`src/components/`)
-
-- `AppShell`, `Header`, `BottomTabBar`, `RoleToggle`
-- `JobCard` — stacked card (título, skills como chips, contagem candidatos, status)
-- `CandidateCard` — **AI Score em destaque absoluto**: círculo grande 72px, cor por faixa (≥80 verde, 60–79 âmbar, <60 vermelho), nome + tagline
-- `CandidateDetail` — Score hero + "Resumo Analítico" (parágrafo) + `Accordion` (shadcn) "Transcrição da Entrevista" + botões Aprovar/Rejeitar
-- `SkillTagInput` — input de tags (Enter/vírgula adiciona, Backspace remove) com `aria-label` e feedback para screen reader
-- `ResumeUpload` — dropzone simulado (`<input type="file">` estilizado, mostra nome/tamanho, sem upload real ainda; devolve `resume_file_url` mock ou usa URL retornada por endpoint futuro)
-- `AsyncButton` — wrapper padrão (loading + disabled + aria-busy)
-- `EmptyState`, `Tabs` (shadcn) para "Vagas Ativas / Fechadas" e "Aplicações"
-
-**Zero `<table>`** — todas as listas usam `<ul>` + `<li>` com cards.
-
-## 7. Acessibilidade (WCAG AA)
-
-- Um único `<main>` no AppShell
-- Tokens de contraste testados (foreground vs background AA)
-- `aria-label` em todos ícones-botão (bottom tabs, close, upload)
-- `aria-current="page"` na tab ativa, `aria-live="polite"` para toasts (sonner já faz)
-- Foco visível via `focus-visible:ring-2 ring-ring`
-- Tap targets ≥ 44×44 (bottom tabs 56px)
-- Acordeão da transcrição via Radix (shadcn Accordion) — teclado OK
-- `lang="pt-BR"` no `<html>`
-
-## 8. Detalhes técnicos (para dev)
-
-- Toggle de papel: `src/stores/role.ts` (Zustand leve ou `useSyncExternalStore` sobre localStorage). Rotas checam papel e escondem tabs/rotas indevidas (sem gate de auth real).
-- `camelToSnake`/`snakeToCamel` recursivos ignoram `File`, `Blob`, `Date`.
-- `ApiError` normaliza `{status, message, details}`; mensagens amigáveis por status (400 "Dados inválidos", 401 "Sessão expirada", 5xx "Serviço indisponível, tente novamente").
-- Sem `og:image` nas rotas (sem hero absoluto ainda).
-
-## 9. Fora de escopo (confirmar depois)
-
-- Auth real (aguardando contrato)
-- Upload real de currículo para storage (só simulação client-side agora)
-- Persistência dos dados mock — tudo vive via API externa quando `VITE_API_URL` estiver configurado; sem fallback offline.
-
-Aprova para eu implementar?
+## Detalhes técnicos (referência)
+- Refresh single-flight: promise compartilhada no módulo `api.ts` para evitar múltiplos `/refresh` concorrentes.
+- Persistência: `localStorage.setItem("auth", JSON.stringify({access, refresh, role}))`, hidratado em `RootComponent` antes do primeiro fetch.
+- Gate `_authenticated` usa `beforeLoad` lendo `authStore.getSnapshot()` (não hook), redirect para `/login?redirect=<href>`.
+- Formato snake_case garantido pelo `camelToSnake` já existente; verificar chaves específicas: `softskills_alvo`, `access_token`, `refresh_token`, `entrevista_id`.
