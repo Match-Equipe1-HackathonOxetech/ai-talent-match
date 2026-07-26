@@ -22,6 +22,7 @@ import { Route as JobsJobIdRouteImport } from './routes/jobs.$jobId'
 import { Route as InterviewsInterviewIdRouteImport } from './routes/interviews.$interviewId'
 import { Route as CandidatesCandidateIdRouteImport } from './routes/candidates.$candidateId'
 import { Route as ApplyJobIdRouteImport } from './routes/apply.$jobId'
+import { Route as JobsJobIdIndexRouteImport } from './routes/jobs.$jobId.index'
 import { Route as JobsJobIdRankingRouteImport } from './routes/jobs.$jobId.ranking'
 
 const SignupRoute = SignupRouteImport.update({
@@ -89,6 +90,11 @@ const ApplyJobIdRoute = ApplyJobIdRouteImport.update({
   path: '/apply/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JobsJobIdIndexRoute = JobsJobIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => JobsJobIdRoute,
+} as any)
 const JobsJobIdRankingRoute = JobsJobIdRankingRouteImport.update({
   id: '/ranking',
   path: '/ranking',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/jobs/new': typeof JobsNewRoute
   '/jobs/': typeof JobsIndexRoute
   '/jobs/$jobId/ranking': typeof JobsJobIdRankingRoute
+  '/jobs/$jobId/': typeof JobsJobIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -121,10 +128,10 @@ export interface FileRoutesByTo {
   '/apply/$jobId': typeof ApplyJobIdRoute
   '/candidates/$candidateId': typeof CandidatesCandidateIdRoute
   '/interviews/$interviewId': typeof InterviewsInterviewIdRoute
-  '/jobs/$jobId': typeof JobsJobIdRouteWithChildren
   '/jobs/new': typeof JobsNewRoute
   '/jobs': typeof JobsIndexRoute
   '/jobs/$jobId/ranking': typeof JobsJobIdRankingRoute
+  '/jobs/$jobId': typeof JobsJobIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -142,6 +149,7 @@ export interface FileRoutesById {
   '/jobs/new': typeof JobsNewRoute
   '/jobs/': typeof JobsIndexRoute
   '/jobs/$jobId/ranking': typeof JobsJobIdRankingRoute
+  '/jobs/$jobId/': typeof JobsJobIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,6 +168,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/jobs/'
     | '/jobs/$jobId/ranking'
+    | '/jobs/$jobId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -171,10 +180,10 @@ export interface FileRouteTypes {
     | '/apply/$jobId'
     | '/candidates/$candidateId'
     | '/interviews/$interviewId'
-    | '/jobs/$jobId'
     | '/jobs/new'
     | '/jobs'
     | '/jobs/$jobId/ranking'
+    | '/jobs/$jobId'
   id:
     | '__root__'
     | '/'
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/jobs/new'
     | '/jobs/'
     | '/jobs/$jobId/ranking'
+    | '/jobs/$jobId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -298,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApplyJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jobs/$jobId/': {
+      id: '/jobs/$jobId/'
+      path: '/'
+      fullPath: '/jobs/$jobId/'
+      preLoaderRoute: typeof JobsJobIdIndexRouteImport
+      parentRoute: typeof JobsJobIdRoute
+    }
     '/jobs/$jobId/ranking': {
       id: '/jobs/$jobId/ranking'
       path: '/ranking'
@@ -322,10 +339,12 @@ const CandidatesRouteWithChildren = CandidatesRoute._addFileChildren(
 
 interface JobsJobIdRouteChildren {
   JobsJobIdRankingRoute: typeof JobsJobIdRankingRoute
+  JobsJobIdIndexRoute: typeof JobsJobIdIndexRoute
 }
 
 const JobsJobIdRouteChildren: JobsJobIdRouteChildren = {
   JobsJobIdRankingRoute: JobsJobIdRankingRoute,
+  JobsJobIdIndexRoute: JobsJobIdIndexRoute,
 }
 
 const JobsJobIdRouteWithChildren = JobsJobIdRoute._addFileChildren(
@@ -360,3 +379,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
