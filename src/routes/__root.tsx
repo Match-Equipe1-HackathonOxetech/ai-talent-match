@@ -89,10 +89,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "HireAI — Recrutamento com IA" },
       {
         property: "og:description",
-        content: "AI Score, entrevistas por chat e um fluxo de recrutamento pensado para o celular.",
+        content: "Plataforma mobile-first de recrutamento com IA: publique vagas, veja o AI Score dos candidatos e conduza entrevistas por chat.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "HireAI — Recrutamento com IA" },
+      { name: "twitter:description", content: "Plataforma mobile-first de recrutamento com IA: publique vagas, veja o AI Score dos candidatos e conduza entrevistas por chat." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/452e0aea-2165-4068-8397-a9f9ed195643/id-preview-605cfd58--9194a3b9-8548-429f-8121-84723af2cd55.lovable.app-1785077407666.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/452e0aea-2165-4068-8397-a9f9ed195643/id-preview-605cfd58--9194a3b9-8548-429f-8121-84723af2cd55.lovable.app-1785077407666.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
