@@ -21,10 +21,11 @@ export const jobsService = {
   get: (jobId: string) =>
     USE_MOCK ? mockApi.getJob(jobId) : api.get<Job>(`/vagas/${jobId}`),
   create: (input: CreateJobInput) => {
+    // Payload em português conforme contrato do backend Python.
     const payload = {
-      jobTitle: input.jobTitle,
-      hardSkills: input.hardSkills,
-      softskillsAlvo: input.softskillsAlvo ?? input.softSkills,
+      titulo: input.jobTitle,
+      hardskills: input.hardSkills,
+      softskills_alvo: input.softskillsAlvo ?? input.softSkills,
     };
     return USE_MOCK ? mockApi.createJob(input) : api.post<Job>("/vagas", payload);
   },

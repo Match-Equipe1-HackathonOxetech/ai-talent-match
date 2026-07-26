@@ -148,11 +148,14 @@ async function request<T>(
   const parsed = text ? safeJson(text) : undefined;
 
   if (!res.ok) {
-    const message =
-      (parsed && typeof parsed === "object" && "message" in parsed
-        ? String((parsed as { message: unknown }).message)
-        : undefined) || friendly(res.status, res.statusText);
-    throw new ApiError(res.status, friendly(res.status, message), parsed);
+    const backendMsg =
+      parsed && typeof parsed === "object"
+        ? (parsed as Record<string, unknown>).message ??
+          (parsed as Record<string, unknown>).error ??
+          (parsed as Record<string, unknown>).detail
+        : undefined;
+    const message = backendMsg ? String(backendMsg) : friendly(res.status, res.statusText);
+    throw new ApiError(res.status, message, parsed);
   }
 
   return snakeToCamel<T>(parsed);
